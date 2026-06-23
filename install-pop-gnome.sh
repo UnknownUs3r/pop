@@ -45,7 +45,6 @@ $AUR -S --noconfirm \
     pop-shell \
     pop-gtk-theme \
     pop-icon-theme \
-    pop-sound-theme \
     pop-wallpapers \
     plank \
     ttf-fira-sans \
