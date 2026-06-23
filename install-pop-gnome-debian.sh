@@ -56,7 +56,6 @@ sudo apt install -y \
     pop-shell \
     pop-gtk-theme \
     pop-icon-theme \
-    pop-sound-theme \
     pop-wallpapers \
     plank \
     fonts-fira-sans fonts-fira-code

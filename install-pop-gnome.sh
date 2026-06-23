@@ -40,15 +40,16 @@ if ! pacman -Q gnome-shell &>/dev/null; then
     fi
 fi
 
-# Install Pop packages
+# Install Pop packages (AUR)
 $AUR -S --noconfirm \
-    pop-shell \
+    gnome-shell-extension-pop-shell-git \
     pop-gtk-theme \
     pop-icon-theme \
-    pop-wallpapers \
     plank \
     ttf-fira-sans \
     ttf-fira-code
+
+# pop-wallpapers-git is unmaintained (last updated 2021), skip it
 
 # Enable display manager (GDM) if none is active
 if ! systemctl is-active display-manager &>/dev/null; then
