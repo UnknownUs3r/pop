@@ -29,13 +29,9 @@ if ! apt-cache show pop-shell &>/dev/null; then
         sudo apt update
     else
         echo "Pop packages not found in Debian repos."
-        echo "Enable Debian backports or testing, or see:"
-        echo "  https://salsa.debian.org/gnome-team/pop-shell"
-        echo ""
-        echo "Falling back to installing from Pop's Ubuntu repo (may have issues on Debian)..."
-        sudo apt install -y curl gpg
-        curl -fsSL https://repo.pop-os.org/repo.gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pop.gpg
-        echo "deb https://repo.pop-os.org/repo/ noble main" | sudo tee /etc/apt/sources.list.d/pop.list
+        echo "Adding Pop repo (http://apt.pop-os.org/release/)..."
+        echo "deb [trusted=yes] http://apt.pop-os.org/release/ jammy main" \
+            | sudo tee /etc/apt/sources.list.d/pop.list
         sudo apt update
     fi
 fi
@@ -91,7 +87,8 @@ if [[ -n "${WAYLAND_DISPLAY:-}" || -n "${DISPLAY:-}" ]] && command -v gsettings 
     gsettings set org.gnome.desktop.interface color-scheme "prefer-dark"
 
     # --- Terminal: Fira Code + Pop colors ---
-    TERM_PROFILE="$(gsettings get org.gnome.Terminal.ProfilesList default | tr -d \"'\" )"
+    TERM_PROFILE="$(gsettings get org.gnome.Terminal.ProfilesList default)"
+    TERM_PROFILE="${TERM_PROFILE//"'"}"
     if [ -n "$TERM_PROFILE" ]; then
         gsettings set "org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$TERM_PROFILE/" font "Fira Code 11"
         gsettings set "org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$TERM_PROFILE/" use-system-font false
@@ -101,15 +98,15 @@ if [[ -n "${WAYLAND_DISPLAY:-}" || -n "${DISPLAY:-}" ]] && command -v gsettings 
 
     # --- Plank dock: autostart + config ---
     mkdir -p ~/.config/autostart
-    cat > ~/.config/autostart/plank.desktop << 'PLANKEOF'
-[Desktop Entry]
-Type=Application
-Name=Plank
-Exec=plank
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-PLANKEOF
+    printf '%s\n' \
+        '[Desktop Entry]' \
+        'Type=Application' \
+        'Name=Plank' \
+        'Exec=plank' \
+        'Hidden=false' \
+        'NoDisplay=false' \
+        'X-GNOME-Autostart-enabled=true' \
+        > ~/.config/autostart/plank.desktop
     dconf write /net/launchpad/plank/docks/dock1/position "'bottom'" 2>/dev/null || true
     dconf write /net/launchpad/plank/docks/dock1/theme "'Gtk+'" 2>/dev/null || true
     dconf write /net/launchpad/plank/docks/dock1/hide-mode "'intellihide'" 2>/dev/null || true
