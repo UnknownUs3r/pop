@@ -83,7 +83,8 @@ if [[ -n "${WAYLAND_DISPLAY:-}" || -n "${DISPLAY:-}" ]] && command -v gsettings 
     gsettings set org.gnome.desktop.interface color-scheme "prefer-dark"
 
     # --- Terminal: Fira Code + Pop colors ---
-    TERM_PROFILE="$(gsettings get org.gnome.Terminal.ProfilesList default | tr -d \"'\" )"
+    TERM_PROFILE="$(gsettings get org.gnome.Terminal.ProfilesList default)"
+    TERM_PROFILE="${TERM_PROFILE//"'"}"
     if [ -n "$TERM_PROFILE" ]; then
         gsettings set "org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$TERM_PROFILE/" font "Fira Code 11"
         gsettings set "org.gnome.Terminal.Legacy.Profile:/org/gnome/terminal/legacy/profiles:/:$TERM_PROFILE/" use-system-font false
@@ -93,15 +94,15 @@ if [[ -n "${WAYLAND_DISPLAY:-}" || -n "${DISPLAY:-}" ]] && command -v gsettings 
 
     # --- Plank dock: autostart + config ---
     mkdir -p ~/.config/autostart
-    cat > ~/.config/autostart/plank.desktop << 'PLANKEOF'
-[Desktop Entry]
-Type=Application
-Name=Plank
-Exec=plank
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-PLANKEOF
+    printf '%s\n' \
+        '[Desktop Entry]' \
+        'Type=Application' \
+        'Name=Plank' \
+        'Exec=plank' \
+        'Hidden=false' \
+        'NoDisplay=false' \
+        'X-GNOME-Autostart-enabled=true' \
+        > ~/.config/autostart/plank.desktop
     dconf write /net/launchpad/plank/docks/dock1/position "'bottom'" 2>/dev/null || true
     dconf write /net/launchpad/plank/docks/dock1/theme "'Gtk+'" 2>/dev/null || true
     dconf write /net/launchpad/plank/docks/dock1/hide-mode "'intellihide'" 2>/dev/null || true
