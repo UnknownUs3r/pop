@@ -75,16 +75,24 @@ for pkg in pop-shell pop-gtk-theme pop-icon-theme pop-wallpapers; do
         curl -sLO "http://apt.pop-os.org/release/$url"
     fi
 done
-sudo dpkg -i *.deb 2>/dev/null || true
-sudo apt --fix-broken install -y
-cd / && rm -rf "$TMPDIR"
-# Ensure the extension is installed in the right location
-if [ -d /usr/share/gnome-shell/extensions/pop-shell@system76.com ]; then
-    sudo glib-compile-schemas /usr/share/gnome-shell/extensions/pop-shell@system76.com/schemas/ 2>/dev/null || true
+if ls *.deb 1>/dev/null 2>&1; then
+    sudo dpkg -i *.deb 2>&1 || true
+    sudo apt install -f -y 2>&1 || true
 else
-    echo "Pop Shell extension not found — trying to locate..."
-    dpkg -L pop-shell 2>/dev/null | grep extensions || \
-        echo "pop-shell deb may not have installed. Check above for dpkg errors."
+    echo "WARNING: No .deb files were downloaded. Packages may not be available for your architecture."
+fi
+cd / && rm -rf "$TMPDIR"
+# Verify extensions landed
+for ext in /usr/share/gnome-shell/extensions/pop-shell@system76.com ~/.local/share/gnome-shell/extensions/pop-shell@system76.com; do
+    if [ -d "$ext" ]; then
+        sudo glib-compile-schemas "$ext/schemas/" 2>/dev/null || true
+        echo "Pop Shell found at: $ext"
+        break
+    fi
+done
+if [ ! -d /usr/share/gnome-shell/extensions/pop-shell@system76.com ] && \
+   [ ! -d ~/.local/share/gnome-shell/extensions/pop-shell@system76.com ]; then
+    echo "ERROR: Pop Shell extension was not installed. Pop packages may not be compatible with this Debian version."
 fi
 
 # --- Enable display manager ---
