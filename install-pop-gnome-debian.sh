@@ -14,10 +14,23 @@ done
 # --- Self-elevate if not root and not in sudoers ---
 if [[ $EUID -ne 0 ]]; then
     if ! sudo -n true 2>/dev/null; then
-        echo "User '$USER' is not in sudoers. Fixing..."
-        su -c "/usr/sbin/usermod -aG sudo $USER && echo 'Done. Reboot or log out, then re-run this script.'"
-        exit 0
+        echo "User '$USER' is not in sudoers."
+        echo "Run this command as root to fix, then re-run the script:"
+        echo "  usermod -aG sudo $USER"
+        echo ""
+        echo "Or just run this script as root directly:"
+        echo "  su -c 'bash $0'"
+        exit 1
     fi
+fi
+
+# --- Add /usr/sbin to PATH (Debian doesn't include it for normal users) ---
+if [[ ":$PATH:" != *":/usr/sbin:"* ]]; then
+    export PATH="$PATH:/usr/sbin:/sbin"
+fi
+# Persist for future shells
+if ! grep -q '/usr/sbin' ~/.bashrc 2>/dev/null; then
+    echo 'export PATH="$PATH:/usr/sbin:/sbin"' >> ~/.bashrc 2>/dev/null || true
 fi
 
 # --- Detect distro ---
