@@ -43,21 +43,6 @@ else
     exit 1
 fi
 
-# --- Add Pop repo if needed (packages not in repos) ---
-if ! apt-cache show pop-shell &>/dev/null; then
-    if [ "$DISTRO" = "ubuntu" ]; then
-        echo "Adding System76 PPA..."
-        sudo add-apt-repository -y ppa:system76/pop
-        sudo apt update
-    else
-        echo "Pop packages not found in Debian repos."
-        echo "Adding Pop repo (http://apt.pop-os.org/release/)..."
-        echo "deb [trusted=yes] http://apt.pop-os.org/release/ jammy main" \
-            | sudo tee /etc/apt/sources.list.d/pop.list
-        sudo apt update
-    fi
-fi
-
 # --- Install GNOME if missing ---
 if ! dpkg -l gnome-shell &>/dev/null; then
     if $MINIMAL; then
@@ -69,14 +54,21 @@ if ! dpkg -l gnome-shell &>/dev/null; then
     fi
 fi
 
-# --- Install Pop packages ---
-sudo apt install -y \
-    pop-shell \
-    pop-gtk-theme \
-    pop-icon-theme \
-    pop-wallpapers \
-    plank \
-    fonts-fira-sans fonts-fira-code
+# --- Install Pop packages (direct .deb download, no repo key needed) ---
+sudo apt install -y curl fonts-fira-sans fonts-fira-code plank
+TMPDIR=$(mktemp -d)
+cd "$TMPDIR"
+for pkg in pop-shell pop-gtk-theme pop-icon-theme pop-wallpapers; do
+    url=$(curl -s "http://apt.pop-os.org/release/dists/jammy/main/binary-amd64/Packages.gz" \
+        | gunzip -c 2>/dev/null \
+        | awk -v pkg="$pkg" '$1 == "Package:" && $2 == pkg { f=1 } f && /^Filename:/ { print $2; exit }')
+    if [ -n "$url" ]; then
+        curl -sLO "http://apt.pop-os.org/release/$url"
+    fi
+done
+sudo dpkg -i *.deb 2>/dev/null || true
+sudo apt --fix-broken install -y
+cd / && rm -rf "$TMPDIR"
 
 # --- Enable display manager ---
 if ! systemctl is-active display-manager &>/dev/null; then
