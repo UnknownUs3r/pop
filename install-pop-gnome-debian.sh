@@ -11,6 +11,15 @@ for arg in "$@"; do
     esac
 done
 
+# --- Self-elevate if not root and not in sudoers ---
+if [[ $EUID -ne 0 ]]; then
+    if ! sudo -n true 2>/dev/null; then
+        echo "User '$USER' is not in sudoers. Fixing..."
+        su -c "/usr/sbin/usermod -aG sudo $USER && echo 'Done. Reboot or log out, then re-run this script.'"
+        exit 0
+    fi
+fi
+
 # --- Detect distro ---
 if grep -qi ubuntu /etc/os-release 2>/dev/null; then
     DISTRO="ubuntu"
