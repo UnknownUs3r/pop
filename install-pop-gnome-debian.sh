@@ -11,14 +11,14 @@ for arg in "$@"; do
     esac
 done
 
-# --- Self-elevate if not root and not in sudoers ---
+# --- Check sudo access ---
 if [[ $EUID -ne 0 ]]; then
-    if ! sudo -n true 2>/dev/null; then
-        echo "User '$USER' is not in sudoers."
-        echo "Run this command as root to fix, then re-run the script:"
+    if ! groups | grep -q '\bsudo\b' 2>/dev/null; then
+        echo "User '$USER' is not in the sudo group."
+        echo "Run this command as root, then re-run the script:"
         echo "  usermod -aG sudo $USER"
         echo ""
-        echo "Or just run this script as root directly:"
+        echo "Or run this script as root directly:"
         echo "  su -c 'bash $0'"
         exit 1
     fi
@@ -55,7 +55,16 @@ if ! dpkg -l gnome-shell &>/dev/null; then
 fi
 
 # --- Install Pop packages (direct .deb download, no repo key needed) ---
-sudo apt install -y curl fonts-fira-sans fonts-fira-code plank
+sudo apt install -y curl fonts-firacode plank
+# fonts-fira-sans not in Debian repos — download from Google Fonts
+if ! dpkg -l fonts-fira-sans &>/dev/null; then
+    mkdir -p ~/.local/share/fonts
+    curl -sL "https://github.com/google/fonts/raw/main/ofl/firasans/FiraSans-Regular.ttf" \
+        -o ~/.local/share/fonts/FiraSans-Regular.ttf 2>/dev/null || true
+    curl -sL "https://github.com/google/fonts/raw/main/ofl/firasans/FiraSans-Bold.ttf" \
+        -o ~/.local/share/fonts/FiraSans-Bold.ttf 2>/dev/null || true
+    fc-cache -f ~/.local/share/fonts 2>/dev/null || true
+fi
 TMPDIR=$(mktemp -d)
 cd "$TMPDIR"
 for pkg in pop-shell pop-gtk-theme pop-icon-theme pop-wallpapers; do
