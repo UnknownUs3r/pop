@@ -55,7 +55,7 @@ if ! dpkg -l gnome-shell &>/dev/null; then
 fi
 
 # --- Install Pop packages (direct .deb download, no repo key needed) ---
-sudo apt install -y curl fonts-firacode plank
+sudo apt install -y curl fonts-firacode plank gnome-shell-extension-prefs
 # fonts-fira-sans not in Debian repos — download from Google Fonts
 if ! dpkg -l fonts-fira-sans &>/dev/null; then
     mkdir -p ~/.local/share/fonts
@@ -78,6 +78,14 @@ done
 sudo dpkg -i *.deb 2>/dev/null || true
 sudo apt --fix-broken install -y
 cd / && rm -rf "$TMPDIR"
+# Ensure the extension is installed in the right location
+if [ -d /usr/share/gnome-shell/extensions/pop-shell@system76.com ]; then
+    sudo glib-compile-schemas /usr/share/gnome-shell/extensions/pop-shell@system76.com/schemas/ 2>/dev/null || true
+else
+    echo "Pop Shell extension not found — trying to locate..."
+    dpkg -L pop-shell 2>/dev/null | grep extensions || \
+        echo "pop-shell deb may not have installed. Check above for dpkg errors."
+fi
 
 # --- Enable display manager ---
 if ! systemctl is-active display-manager &>/dev/null; then
