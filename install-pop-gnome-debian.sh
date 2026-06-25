@@ -54,45 +54,39 @@ if ! dpkg -l gnome-shell &>/dev/null; then
     fi
 fi
 
-# --- Install Pop packages (direct .deb download, no repo key needed) ---
-sudo apt install -y curl fonts-firacode plank gnome-shell-extension-prefs
-# fonts-fira-sans not in Debian repos — download from Google Fonts
-if ! dpkg -l fonts-fira-sans &>/dev/null; then
-    mkdir -p ~/.local/share/fonts
-    curl -sL "https://github.com/google/fonts/raw/main/ofl/firasans/FiraSans-Regular.ttf" \
-        -o ~/.local/share/fonts/FiraSans-Regular.ttf 2>/dev/null || true
-    curl -sL "https://github.com/google/fonts/raw/main/ofl/firasans/FiraSans-Bold.ttf" \
-        -o ~/.local/share/fonts/FiraSans-Bold.ttf 2>/dev/null || true
-    fc-cache -f ~/.local/share/fonts 2>/dev/null || true
-fi
+# --- Install Pop themes (downloaded from GitHub, no repo needed) ---
+sudo apt install -y curl wget fonts-firacode plank gnome-shell-extension-prefs unzip
+
+# Fonts (Fira Sans not in Debian repos — download from GitHub)
+mkdir -p ~/.local/share/fonts
+curl -sL "https://github.com/google/fonts/raw/main/ofl/firasans/FiraSans-Regular.ttf" \
+    -o ~/.local/share/fonts/FiraSans-Regular.ttf 2>/dev/null || true
+curl -sL "https://github.com/google/fonts/raw/main/ofl/firasans/FiraSans-Bold.ttf" \
+    -o ~/.local/share/fonts/FiraSans-Bold.ttf 2>/dev/null || true
+fc-cache -f ~/.local/share/fonts 2>/dev/null || true
+
+# Pop GTK/Shell/Sound themes from source
 TMPDIR=$(mktemp -d)
 cd "$TMPDIR"
-for pkg in pop-shell pop-gtk-theme pop-icon-theme pop-wallpapers; do
-    url=$(curl -s "http://apt.pop-os.org/release/dists/jammy/main/binary-amd64/Packages.gz" \
-        | gunzip -c 2>/dev/null \
-        | awk -v pkg="$pkg" '$1 == "Package:" && $2 == pkg { f=1 } f && /^Filename:/ { print $2; exit }')
-    if [ -n "$url" ]; then
-        curl -sLO "http://apt.pop-os.org/release/$url"
-    fi
-done
-if ls *.deb 1>/dev/null 2>&1; then
-    sudo dpkg -i *.deb 2>&1 || true
-    sudo apt install -f -y 2>&1 || true
-else
-    echo "WARNING: No .deb files were downloaded. Packages may not be available for your architecture."
-fi
+wget -q "https://github.com/pop-os/gtk-theme/archive/master.zip" -O gtk-theme.zip
+unzip -q gtk-theme.zip
+sudo cp -r gtk-theme-master/usr/share/themes/* /usr/share/themes/ 2>/dev/null || true
+sudo cp -r gtk-theme-master/usr/share/gnome-shell/* /usr/share/gnome-shell/ 2>/dev/null || true
+sudo cp -r gtk-theme-master/usr/share/sounds/* /usr/share/sounds/ 2>/dev/null || true
+sudo cp -r gtk-theme-master/usr/share/icons/* /usr/share/icons/ 2>/dev/null || true
 cd / && rm -rf "$TMPDIR"
-# Verify extensions landed
-for ext in /usr/share/gnome-shell/extensions/pop-shell@system76.com ~/.local/share/gnome-shell/extensions/pop-shell@system76.com; do
-    if [ -d "$ext" ]; then
-        sudo glib-compile-schemas "$ext/schemas/" 2>/dev/null || true
-        echo "Pop Shell found at: $ext"
-        break
-    fi
-done
-if [ ! -d /usr/share/gnome-shell/extensions/pop-shell@system76.com ] && \
-   [ ! -d ~/.local/share/gnome-shell/extensions/pop-shell@system76.com ]; then
-    echo "ERROR: Pop Shell extension was not installed. Pop packages may not be compatible with this Debian version."
+
+# Pop Shell extension from GNOME Extensions website (works on any distro with GNOME 40+)
+wget -q "https://extensions.gnome.org/extension-data/pop-shellsystem76.com.v1.shell-extension.zip" \
+    -O /tmp/pop-shell.zip 2>/dev/null || true
+if [ -f /tmp/pop-shell.zip ] && [ -s /tmp/pop-shell.zip ]; then
+    mkdir -p ~/.local/share/gnome-shell/extensions/pop-shell@system76.com
+    unzip -qo /tmp/pop-shell.zip -d ~/.local/share/gnome-shell/extensions/pop-shell@system76.com/ 2>/dev/null || true
+    glib-compile-schemas ~/.local/share/gnome-shell/extensions/pop-shell@system76.com/schemas/ 2>/dev/null || true
+    rm /tmp/pop-shell.zip
+    echo "Pop Shell installed from GNOME Extensions."
+else
+    echo "Pop Shell download failed. Install manually at: https://extensions.gnome.org/extension/4338/pop-shell/"
 fi
 
 # --- Enable display manager ---
